@@ -25,7 +25,7 @@ Aqui está a proposta de divisão das telas e responsabilidades para a sua equip
 
 ---
 
-### 🧑‍💻 Pessoa 2: Módulo do Motorista (Foco em Usabilidade, GPS e Modo Offline)
+### 🧑‍💻Wellington Vinicius 2: Módulo do Motorista (Foco em Usabilidade, GPS e Modo Offline)
 
 **Perfil da missão:** Esta pessoa tem o maior desafio de UX (Interface fácil para motoristas mais velhos, botões grandes - RNF05) e o desafio técnico de capturar o GPS e lidar com falta de internet (Desafio 1).
 
