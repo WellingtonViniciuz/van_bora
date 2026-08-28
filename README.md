@@ -8,7 +8,7 @@ Aqui está a proposta de divisão das telas e responsabilidades para a sua equip
 
 ---
 
-### 🧑‍💻 Pessoa 1: Módulo do Passageiro (Foco em Consumo de Dados e Mapas)
+### 🧑‍💻 Thayná Fortunato 1: Módulo do Passageiro (Foco em Consumo de Dados e Mapas)
 
 **Perfil da missão:** Esta pessoa lidará muito com a Google Maps API, `Streams` (para tempo real) e design focado no usuário final.
 
@@ -42,7 +42,7 @@ Aqui está a proposta de divisão das telas e responsabilidades para a sua equip
 
 ---
 
-### 🧑‍💻 Pessoa 3: Módulo Empresa/Admin e Arquitetura Base (Foco em Gestão e CRUDs)
+### 🧑‍💻 Wendrieley Clara 3: Módulo Empresa/Admin e Arquitetura Base (Foco em Gestão e CRUDs)
 
 **Perfil da missão:** Esta pessoa vai estruturar a base do app (configurar Firebase, arquitetura MVC/MVVM) e criar as telas de gerenciamento, lidando com formulários e listas.
 
