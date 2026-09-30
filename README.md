@@ -42,7 +42,7 @@ Aqui está a proposta de divisão das telas e responsabilidades para a sua equip
 
 ---
 
-### 🧑‍💻 Wendrieley Clara 3: Módulo Empresa/Admin e Arquitetura Base (Foco em Gestão e CRUDs)
+### 🧑‍💻 Wendrieley Clara e Larissa3: Módulo Empresa/Admin e Arquitetura Base (Foco em Gestão e CRUDs)
 
 **Perfil da missão:** Esta pessoa vai estruturar a base do app (configurar Firebase, arquitetura MVC/MVVM) e criar as telas de gerenciamento, lidando com formulários e listas.
 
