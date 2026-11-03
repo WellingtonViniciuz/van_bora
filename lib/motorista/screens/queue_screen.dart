@@ -47,7 +47,7 @@ class _QueueScreenState extends State<QueueScreen> {
   }
 
   void _goToPanel() {
-    Navigator.of(context).pushReplacementNamed(AppRoutes.operation, arguments: widget.assignment);
+    Navigator.of(context).pushNamed(AppRoutes.operation, arguments: widget.assignment);
   }
 
   @override

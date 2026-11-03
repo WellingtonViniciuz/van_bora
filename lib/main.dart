@@ -1,3 +1,4 @@
+/*
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 
@@ -10,8 +11,8 @@ Future<void> main() async {
   final services = await MotoristaServices.create();
   runApp(MotoristaApp(services: services));
 }
+*/
 
-/*
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -37,4 +38,3 @@ Future<void> main() async {
   final services = await MotoristaServices.create();
   runApp(MotoristaApp(services: services));
 }
-*/
