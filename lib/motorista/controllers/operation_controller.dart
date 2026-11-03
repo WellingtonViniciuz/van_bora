@@ -41,23 +41,34 @@ class OperationController extends ChangeNotifier {
   Future<void> startTrip() async {
     if (isTripActive || _busy) return;
     _setBusy(true);
-    final allowed = await services.location.ensurePermission();
-    if (!allowed) {
-      _message = 'Permita o acesso à localização para iniciar a rota.';
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _message = 'O GPS está desativado. Ative a localização no aparelho.';
+        _setBusy(false);
+        return;
+      }
+      final allowed = await services.location.ensurePermission();
+      if (!allowed) {
+        _message = 'Permita o acesso à localização para iniciar a rota.';
+        _setBusy(false);
+        return;
+      }
+      _message = null;
+      _tripId = '${assignment.vanId}_${DateTime.now().millisecondsSinceEpoch}';
+      await _record(EventType.iniciarRota, _baseData());
+      _gpsSubscription = services.location.positions().listen(
+        _onPosition,
+        onError: (_) {
+          _message = 'Sem sinal de GPS. Verifique a localização do aparelho.';
+          _notify();
+        },
+      );
+    } catch (e) {
+      _message = 'Erro ao iniciar rota: $e';
+    } finally {
       _setBusy(false);
-      return;
     }
-    _message = null;
-    _tripId = '${assignment.vanId}_${DateTime.now().millisecondsSinceEpoch}';
-    await _record(EventType.iniciarRota, _baseData());
-    _gpsSubscription = services.location.positions().listen(
-      _onPosition,
-      onError: (_) {
-        _message = 'Sem sinal de GPS. Verifique a localização do aparelho.';
-        _notify();
-      },
-    );
-    _setBusy(false);
   }
 
   Future<void> endTrip() async {
