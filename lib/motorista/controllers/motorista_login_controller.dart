@@ -4,8 +4,8 @@ import '../models/driver_assignment.dart';
 import '../services/auth_service.dart';
 import '../services/motorista_remote_service.dart';
 
-class LoginController extends ChangeNotifier {
-  LoginController({
+class MotoristaLoginController extends ChangeNotifier {
+  MotoristaLoginController({
     required AuthService auth,
     required MotoristaRemoteService remote,
   })  : _auth = auth,

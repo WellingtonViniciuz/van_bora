@@ -4,24 +4,24 @@ import '../../app/route_names.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/vb_confirm_dialog.dart';
 import '../../core/widgets/vb_primary_button.dart';
-import '../controllers/queue_controller.dart';
+import '../controllers/motorista_queue_controller.dart';
 import '../models/driver_assignment.dart';
 import '../services/motorista_services.dart';
 import '../widgets/ahead_vehicle_tile.dart';
 import '../widgets/queue_position_card.dart';
 
-class QueueScreen extends StatefulWidget {
-  const QueueScreen({super.key, required this.services, required this.assignment});
+class MotoristaQueueScreen extends StatefulWidget {
+  const MotoristaQueueScreen({super.key, required this.services, required this.assignment});
 
   final MotoristaServices services;
   final DriverAssignment assignment;
 
   @override
-  State<QueueScreen> createState() => _QueueScreenState();
+  State<MotoristaQueueScreen> createState() => _MotoristaQueueScreenState();
 }
 
-class _QueueScreenState extends State<QueueScreen> {
-  late final QueueController _controller = QueueController(
+class _MotoristaQueueScreenState extends State<MotoristaQueueScreen> {
+  late final MotoristaQueueController _controller = MotoristaQueueController(
     assignment: widget.assignment,
     remote: widget.services.remote,
   );
@@ -35,7 +35,7 @@ class _QueueScreenState extends State<QueueScreen> {
   Future<void> _signOut() async {
     final confirmed = await showVbConfirm(
       context,
-      title: 'Sair do aplicativo?',
+      title: 'Sair da conta?',
       message: 'Você precisará entrar novamente para acompanhar a fila.',
       confirmLabel: 'Sair',
       danger: true,
@@ -43,7 +43,7 @@ class _QueueScreenState extends State<QueueScreen> {
     if (!confirmed || !mounted) return;
     await widget.services.auth.signOut();
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.welcome, (route) => false);
   }
 
   void _goToPanel() {
@@ -54,12 +54,15 @@ class _QueueScreenState extends State<QueueScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'Sair',
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: _signOut,
-        ),
+        automaticallyImplyLeading: false,
         title: const Text('Fila de saída'),
+        actions: [
+          IconButton(
+            tooltip: 'Sair da conta',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: _signOut,
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListenableBuilder(

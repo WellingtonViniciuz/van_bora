@@ -27,7 +27,10 @@ class LocationService {
               enableWakeLock: true,
             ),
           )
-        : LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 25);
+        : const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 25,
+          );
     return Geolocator.getPositionStream(locationSettings: settings);
   }
 }

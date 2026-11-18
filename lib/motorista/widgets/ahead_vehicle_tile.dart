@@ -31,7 +31,7 @@ class AheadVehicleTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${ordinal}º',
+              '$ordinalº',
               style: textTheme.titleMedium?.copyWith(color: AppColors.primary),
             ),
           ),

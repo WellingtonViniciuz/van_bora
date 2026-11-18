@@ -4,7 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/vb_confirm_dialog.dart';
 import '../../core/widgets/vb_primary_button.dart';
 import '../../core/widgets/vb_status_badge.dart';
-import '../controllers/operation_controller.dart';
+import '../controllers/motorista_operation_controller.dart';
 import '../models/driver_assignment.dart';
 import '../services/motorista_services.dart';
 import '../widgets/offline_mode_view.dart';
@@ -12,18 +12,18 @@ import '../widgets/occupancy_selector.dart';
 import '../widgets/trip_start_button.dart';
 import '../widgets/van_summary_card.dart';
 
-class OperationScreen extends StatefulWidget {
-  const OperationScreen({super.key, required this.services, required this.assignment});
+class MotoristaOperationScreen extends StatefulWidget {
+  const MotoristaOperationScreen({super.key, required this.services, required this.assignment});
 
   final MotoristaServices services;
   final DriverAssignment assignment;
 
   @override
-  State<OperationScreen> createState() => _OperationScreenState();
+  State<MotoristaOperationScreen> createState() => _MotoristaOperationScreenState();
 }
 
-class _OperationScreenState extends State<OperationScreen> {
-  late final OperationController _controller = OperationController(
+class _MotoristaOperationScreenState extends State<MotoristaOperationScreen> {
+  late final MotoristaOperationController _controller = MotoristaOperationController(
     assignment: widget.assignment,
     services: widget.services,
   );

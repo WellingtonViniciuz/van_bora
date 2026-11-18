@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../motorista/services/motorista_services.dart';
 import 'app_router.dart';
-import 'route_names.dart';
+import 'screens/welcome_screen.dart';
 
-class MotoristaApp extends StatelessWidget {
-  const MotoristaApp({super.key, required this.services});
+class VanBoraApp extends StatelessWidget {
+  const VanBoraApp({super.key, required this.services});
 
   final MotoristaServices services;
 
@@ -16,7 +16,7 @@ class MotoristaApp extends StatelessWidget {
       title: 'Van Bora',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      initialRoute: AppRoutes.login,
+      home: const WelcomeScreen(),
       onGenerateRoute: (settings) => AppRouter.onGenerateRoute(settings, services),
     );
   }

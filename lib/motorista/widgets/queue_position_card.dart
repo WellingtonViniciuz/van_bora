@@ -13,7 +13,7 @@ class QueuePositionCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final motoristas = total == 1 ? 'motorista' : 'motoristas';
     return Semantics(
-      label: 'Sua posição na fila: ${position}º lugar de $total $motoristas',
+      label: 'Sua posição na fila: $positionº lugar de $total $motoristas',
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
@@ -31,7 +31,7 @@ class QueuePositionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('${position}º lugar', style: textTheme.displaySmall),
+            Text('$positionº lugar', style: textTheme.displaySmall),
             const SizedBox(height: 6),
             Text('De $total $motoristas', style: textTheme.bodyMedium),
           ],

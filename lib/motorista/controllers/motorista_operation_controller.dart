@@ -8,8 +8,8 @@ import '../models/occupancy.dart';
 import '../models/pending_event.dart';
 import '../services/motorista_services.dart';
 
-class OperationController extends ChangeNotifier {
-  OperationController({required this.assignment, required this.services});
+class MotoristaOperationController extends ChangeNotifier {
+  MotoristaOperationController({required this.assignment, required this.services});
 
   final DriverAssignment assignment;
   final MotoristaServices services;

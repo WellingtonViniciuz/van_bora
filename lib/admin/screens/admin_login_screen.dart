@@ -5,24 +5,17 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/vb_logo.dart';
 import '../../core/widgets/vb_primary_button.dart';
 import '../../core/widgets/vb_text_field.dart';
-import '../controllers/login_controller.dart';
-import '../models/driver_assignment.dart';
-import '../services/motorista_services.dart';
+import '../controllers/admin_login_controller.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.services});
-
-  final MotoristaServices services;
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  late final LoginController _controller = LoginController(
-    auth: widget.services.auth,
-    remote: widget.services.remote,
-  );
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final _controller = AdminLoginController();
   final _usuario = TextEditingController();
   final _senha = TextEditingController();
 
@@ -31,7 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _usuario.addListener(_controller.clearError);
     _senha.addListener(_controller.clearError);
-    _restoreSession();
   }
 
   @override
@@ -42,49 +34,30 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _restoreSession() async {
-    final assignment = await _controller.restoreSession();
-    if (assignment != null && mounted) _goToQueue(assignment);
-  }
-
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    final assignment = await _controller.signIn(usuario: _usuario.text, senha: _senha.text);
-    if (assignment != null && mounted) _goToQueue(assignment);
-  }
-
-  void _goToQueue(DriverAssignment assignment) {
-    Navigator.of(context).pushReplacementNamed(AppRoutes.queue, arguments: assignment);
-  }
-
-  void _showForgotPassword() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Esqueceu a senha?'),
-        content: const Text('Peça ao gestor da sua empresa para redefinir o seu acesso.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Entendi'),
-          ),
-        ],
-      ),
-    );
+    final success =
+        await _controller.signIn(usuario: _usuario.text, senha: _senha.text);
+    if (success && mounted) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.adminDashboard);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([_controller, _usuario, _senha]),
         builder: (context, _) {
-          if (_controller.checkingSession) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final canSubmit =
-              _usuario.text.trim().isNotEmpty && _senha.text.isNotEmpty && !_controller.loading;
+          final canSubmit = _usuario.text.trim().isNotEmpty &&
+              _senha.text.isNotEmpty &&
+              !_controller.loading;
           return Stack(
             children: [
               const Align(
@@ -104,21 +77,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           const VbLogo(),
                           const SizedBox(height: 12),
                           Text(
-                            'Acesso do motorista',
+                            'Portal do Gestor / Empresa',
                             textAlign: TextAlign.center,
                             style: textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 40),
                           VbTextField(
                             controller: _usuario,
-                            hint: 'Usuário',
-                            icon: Icons.person_outline_rounded,
+                            hint: 'Usuário Admin (ex: admin)',
+                            icon: Icons.admin_panel_settings_outlined,
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 12),
                           VbTextField(
                             controller: _senha,
-                            hint: 'Senha',
+                            hint: 'Senha (ex: admin123)',
                             icon: Icons.lock_outline_rounded,
                             obscure: _controller.obscure,
                             textInputAction: TextInputAction.done,
@@ -126,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (canSubmit) _submit();
                             },
                             suffix: IconButton(
-                              tooltip: _controller.obscure ? 'Mostrar senha' : 'Ocultar senha',
                               onPressed: _controller.toggleObscure,
                               icon: Icon(
                                 _controller.obscure
@@ -137,18 +109,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           if (_controller.error != null) ...[
                             const SizedBox(height: 16),
-                            _ErrorBanner(message: _controller.error!),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.dangerSoft,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _controller.error!,
+                                style: const TextStyle(
+                                  color: AppColors.danger,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
                           ],
                           const SizedBox(height: 24),
                           VbPrimaryButton(
-                            label: 'Entrar',
+                            label: 'Entrar como Admin',
                             loading: _controller.loading,
                             onPressed: canSubmit ? _submit : null,
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: _showForgotPassword,
-                            child: const Text('Esqueci minha senha?'),
                           ),
                         ],
                       ),
@@ -159,38 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      liveRegion: true,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.dangerSoft,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline_rounded, color: AppColors.danger),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -211,6 +159,9 @@ class _WaveBackground extends StatelessWidget {
 
 class _WavePainter extends CustomPainter {
   @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+
+  @override
   void paint(Canvas canvas, Size size) {
     final path = Path()
       ..moveTo(0, size.height * 0.45)
@@ -221,7 +172,4 @@ class _WavePainter extends CustomPainter {
       ..close();
     canvas.drawPath(path, Paint()..color = AppColors.primarySoft);
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -6,8 +6,8 @@ import '../models/driver_assignment.dart';
 import '../models/queue_entry.dart';
 import '../services/motorista_remote_service.dart';
 
-class QueueController extends ChangeNotifier {
-  QueueController({
+class MotoristaQueueController extends ChangeNotifier {
+  MotoristaQueueController({
     required this.assignment,
     required MotoristaRemoteService remote,
   }) : _remote = remote {

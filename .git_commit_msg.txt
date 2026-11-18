@@ -1,0 +1,8 @@
+feat(multi-profile): adiciona tela Welcome, módulo Admin parcial e padronização de navegação/logout
+
+- Adiciona WelcomeScreen como rota raiz (home) com opções para Passageiro, Motorista e Administrador.
+- Implementa o Módulo Admin parcial (Modelos, Serviço remoto com suporte a CRUD mock reativo, Controllers, AdminLoginScreen e AdminDashboardScreen com abas para Veículos, Rotas e Motoristas que necessitam ser ajustados).
+- Padroniza a nomenclatura das classes e arquivos do Motorista com o prefixo "Motorista" (MotoristaLoginScreen, MotoristaQueueScreen, etc.).
+- Configura permissões de geolocalização no AndroidManifest.xml e robustez no tratamento de GPS.
+- Padroniza o fluxo de logout em ambos os módulos (Admin e Motorista) para retornar à tela de Welcome com o diálogo de confirmação "Sair da conta?".
+- Remove a seta de retorno das AppBars do Admin e Fila do Motorista, substituindo por ícone de logout no canto superior direito.
