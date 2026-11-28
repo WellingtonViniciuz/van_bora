@@ -23,6 +23,24 @@ class AdminRoute {
   final String destino;
   final int intervaloMinutos;
 
+  String get percurso => '$origem → $destino';
+
+  AdminRoute copyWith({
+    String? id,
+    String? codigo,
+    String? origem,
+    String? destino,
+    int? intervaloMinutos,
+  }) {
+    return AdminRoute(
+      id: id ?? this.id,
+      codigo: codigo ?? this.codigo,
+      origem: origem ?? this.origem,
+      destino: destino ?? this.destino,
+      intervaloMinutos: intervaloMinutos ?? this.intervaloMinutos,
+    );
+  }
+
   Map<String, dynamic> toMap() => {
         'codigo': codigo,
         'origem': origem,

@@ -2,49 +2,219 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../motorista/models/queue_entry.dart';
 import '../../motorista/services/firestore_paths.dart';
 import '../../motorista/services/modo_teste.dart';
 import '../models/admin_driver.dart';
 import '../models/admin_route.dart';
+import '../models/admin_trip.dart';
 import '../models/admin_vehicle.dart';
 
+/// Acesso aos dados do admin. Em debug (`ModoTeste.ativo`) usa dados em
+/// memória; em release lê e grava no Firestore.
 class AdminRemoteService {
-  AdminRemoteService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+  AdminRemoteService({FirebaseFirestore? firestore}) : _firestore = firestore;
 
-  final FirebaseFirestore _db;
+  static const rotas = 'rotas';
 
-  static final _vehiclesController =
-      StreamController<List<AdminVehicle>>.broadcast();
-  static final _routesController = StreamController<List<AdminRoute>>.broadcast();
-  static final _driversController =
-      StreamController<List<AdminDriver>>.broadcast();
+  /// Quantas viagens recentes são lidas para a "Atividade recente".
+  static const maxViagens = 20;
 
-  static final List<AdminVehicle> _mockVehicles = [
+  final FirebaseFirestore? _firestore;
+
+  FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
+
+  static final _mock = _MockStore();
+
+  // ---------------------------------------------------------------- IDs
+
+  /// Gera o id antes de salvar, para o item já aparecer na lista com o
+  /// mesmo id que terá no banco.
+  String newId(String prefixo) {
+    if (ModoTeste.ativo) return '${prefixo}_${DateTime.now().microsecondsSinceEpoch}';
+    final colecao = switch (prefixo) {
+      'van' => FirestorePaths.vans,
+      'rota' => rotas,
+      _ => FirestorePaths.motoristas,
+    };
+    return _db.collection(colecao).doc().id;
+  }
+
+  // ---------------------------------------------------------------- Vans
+
+  Stream<List<AdminVehicle>> watchVehicles() {
+    if (ModoTeste.ativo) {
+      return _mock.watch(_mock.vehiclesSnapshot, refresh: const Duration(seconds: 10));
+    }
+    return _db.collection(FirestorePaths.vans).snapshots().map(
+          (snap) => snap.docs.map((d) => AdminVehicle.fromMap(d.id, d.data())).toList()
+            ..sort((a, b) => a.vanNome.compareTo(b.vanNome)),
+        );
+  }
+
+  Future<void> saveVehicle(AdminVehicle vehicle) async {
+    if (ModoTeste.ativo) {
+      _mock.upsert(_mock.vehicles, vehicle, (v) => v.id);
+      return;
+    }
+    await _db
+        .collection(FirestorePaths.vans)
+        .doc(vehicle.id)
+        .set(vehicle.toMap(), SetOptions(merge: true));
+  }
+
+  Future<void> deleteVehicle(String id) async {
+    if (ModoTeste.ativo) {
+      _mock.remove(_mock.vehicles, (v) => v.id == id);
+      return;
+    }
+    await _db.collection(FirestorePaths.vans).doc(id).delete();
+  }
+
+  // ---------------------------------------------------------------- Rotas
+
+  Stream<List<AdminRoute>> watchRoutes() {
+    if (ModoTeste.ativo) return _mock.watch(() => List.of(_mock.routes));
+    return _db.collection(rotas).snapshots().map(
+          (snap) => snap.docs.map((d) => AdminRoute.fromMap(d.id, d.data())).toList()
+            ..sort((a, b) => a.codigo.compareTo(b.codigo)),
+        );
+  }
+
+  Future<void> saveRoute(AdminRoute route) async {
+    if (ModoTeste.ativo) {
+      _mock.upsert(_mock.routes, route, (r) => r.id);
+      return;
+    }
+    await _db.collection(rotas).doc(route.id).set(route.toMap(), SetOptions(merge: true));
+  }
+
+  Future<void> deleteRoute(String id) async {
+    if (ModoTeste.ativo) {
+      _mock.remove(_mock.routes, (r) => r.id == id);
+      return;
+    }
+    await _db.collection(rotas).doc(id).delete();
+  }
+
+  // ---------------------------------------------------------------- Motoristas
+
+  Stream<List<AdminDriver>> watchDrivers() {
+    if (ModoTeste.ativo) return _mock.watch(() => List.of(_mock.drivers));
+    return _db.collection(FirestorePaths.motoristas).snapshots().map(
+          (snap) => snap.docs.map((d) => AdminDriver.fromMap(d.id, d.data())).toList()
+            ..sort((a, b) => a.nome.compareTo(b.nome)),
+        );
+  }
+
+  Future<void> saveDriver(AdminDriver driver) async {
+    if (ModoTeste.ativo) {
+      _mock.upsert(_mock.drivers, driver, (d) => d.id);
+      return;
+    }
+    await _db
+        .collection(FirestorePaths.motoristas)
+        .doc(driver.id)
+        .set(driver.toMap(), SetOptions(merge: true));
+  }
+
+  Future<void> deleteDriver(String id) async {
+    if (ModoTeste.ativo) {
+      _mock.remove(_mock.drivers, (d) => d.id == id);
+      return;
+    }
+    await _db.collection(FirestorePaths.motoristas).doc(id).delete();
+  }
+
+  // ---------------------------------------------------------------- Dashboard
+
+  /// Entradas das filas de todas as rotas (`filas/{rotaId}/entradas`).
+  Stream<List<QueueEntry>> watchQueue() {
+    if (ModoTeste.ativo) return _mock.watch(_mock.queueSnapshot);
+    return _db.collectionGroup(FirestorePaths.entradas).snapshots().map(
+          (snap) => snap.docs.map((d) => QueueEntry.fromMap(d.id, d.data())).toList(),
+        );
+  }
+
+  /// Viagens mais recentes, gravadas pelo motorista.
+  Stream<List<AdminTrip>> watchRecentTrips() {
+    if (ModoTeste.ativo) return _mock.watch(() => List.of(_mock.trips));
+    return _db
+        .collection(FirestorePaths.viagens)
+        .orderBy('iniciadaEm', descending: true)
+        .limit(maxViagens)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => AdminTrip.fromMap(d.id, d.data())).toList());
+  }
+}
+
+/// Dados de teste em memória. Usa os mesmos ids do `ModoTeste` do motorista
+/// e da demonstração do passageiro (van12, rf09...).
+class _MockStore {
+  _MockStore() {
+    final agora = DateTime.now();
+    vehicles.last = vehicles.last.copyWith(
+      localizacaoEm: agora.subtract(const Duration(minutes: 2)),
+    );
+    trips.addAll([
+      AdminTrip(
+        id: 'demo-van12',
+        vanId: 'van12',
+        motoristaId: ModoTeste.uid,
+        rotaId: 'rf09',
+        status: 'ativa',
+        iniciadaEm: agora.subtract(const Duration(minutes: 12)),
+      ),
+      AdminTrip(
+        id: 'demo-van04',
+        vanId: 'van04',
+        motoristaId: 'teste-van04',
+        rotaId: 'rf09',
+        status: 'ativa',
+        iniciadaEm: agora.subtract(const Duration(minutes: 35)),
+      ),
+      AdminTrip(
+        id: 'demo-van08',
+        vanId: 'van08',
+        motoristaId: 'teste-van08',
+        rotaId: 'rf10',
+        status: 'concluida',
+        iniciadaEm: agora.subtract(const Duration(minutes: 80)),
+        encerradaEm: agora.subtract(const Duration(minutes: 40)),
+      ),
+    ]);
+  }
+
+  final _changes = StreamController<void>.broadcast();
+
+  /// Vans que estão "transmitindo" a localização na simulação.
+  final _online = {'van12'};
+
+  final vehicles = <AdminVehicle>[
     const AdminVehicle(
       id: 'van12',
       vanNome: 'Van 12',
       placa: 'QXV-4821',
       capacidade: 15,
-      status: 'disponivel',
+      status: AdminVehicle.statusEmRota,
     ),
     const AdminVehicle(
       id: 'van08',
       vanNome: 'Van 08',
       placa: 'KPT-9123',
       capacidade: 15,
-      status: 'disponivel',
+      status: AdminVehicle.statusDisponivel,
     ),
     const AdminVehicle(
       id: 'van04',
       vanNome: 'Van 04',
       placa: 'MNO-3482',
       capacidade: 18,
-      status: 'disponivel',
+      status: AdminVehicle.statusEmRota,
     ),
   ];
 
-  static final List<AdminRoute> _mockRoutes = [
+  final routes = <AdminRoute>[
     const AdminRoute(
       id: 'rf09',
       codigo: 'RF09',
@@ -61,9 +231,9 @@ class AdminRemoteService {
     ),
   ];
 
-  static final List<AdminDriver> _mockDrivers = [
+  final drivers = <AdminDriver>[
     const AdminDriver(
-      id: 'teste-uid',
+      id: ModoTeste.uid,
       nome: 'Motorista de Teste',
       vanId: 'van12',
       vanNome: 'Van 12',
@@ -73,162 +243,82 @@ class AdminRemoteService {
       origem: 'Centro',
       destino: 'IFPE',
     ),
+    const AdminDriver(
+      id: 'teste-van08',
+      nome: 'Roberto',
+      vanId: 'van08',
+      vanNome: 'Van 08',
+      placa: 'KPT-9123',
+      rotaId: 'rf10',
+      rotaCodigo: 'RF10',
+      origem: 'Boa Viagem',
+      destino: 'IFPE',
+    ),
+    const AdminDriver(
+      id: 'teste-van04',
+      nome: 'Carlos',
+      vanId: 'van04',
+      vanNome: 'Van 04',
+      placa: 'MNO-3482',
+      rotaId: 'rf09',
+      rotaCodigo: 'RF09',
+      origem: 'Centro',
+      destino: 'IFPE',
+    ),
   ];
 
-  // Vehicles CRUD
-  Stream<List<AdminVehicle>> watchVehicles() {
-    if (ModoTeste.ativo) {
-      Future.microtask(() => _vehiclesController.add(List.from(_mockVehicles)));
-      return _vehiclesController.stream;
-    }
-    return _db.collection(FirestorePaths.vans).snapshots().map(
-          (snap) => snap.docs
-              .map((d) => AdminVehicle.fromMap(d.id, d.data()))
-              .toList(),
-        );
+  final trips = <AdminTrip>[];
+
+  List<AdminVehicle> vehiclesSnapshot() {
+    final agora = DateTime.now();
+    return [
+      for (final v in vehicles)
+        _online.contains(v.id) ? v.copyWith(localizacaoEm: agora) : v,
+    ];
   }
 
-  Future<void> saveVehicle(AdminVehicle vehicle) async {
-    if (ModoTeste.ativo) {
-      if (vehicle.id.isEmpty) {
-        final newId = 'van_${DateTime.now().millisecondsSinceEpoch}';
-        final v = AdminVehicle(
-          id: newId,
-          vanNome: vehicle.vanNome,
-          placa: vehicle.placa,
-          capacidade: vehicle.capacidade,
-          status: vehicle.status,
-        );
-        _mockVehicles.add(v);
-      } else {
-        final index = _mockVehicles.indexWhere((item) => item.id == vehicle.id);
-        if (index >= 0) {
-          _mockVehicles[index] = vehicle;
-        } else {
-          _mockVehicles.add(vehicle);
-        }
-      }
-      _vehiclesController.add(List.from(_mockVehicles));
-      return;
-    }
-    final ref = vehicle.id.isEmpty
-        ? _db.collection(FirestorePaths.vans).doc()
-        : _db.collection(FirestorePaths.vans).doc(vehicle.id);
-    await ref.set(vehicle.toMap(), SetOptions(merge: true));
+  /// Na simulação, todo motorista com van disponível e rota está na fila.
+  List<QueueEntry> queueSnapshot() {
+    final disponiveis = {
+      for (final v in vehicles.where((v) => v.status == AdminVehicle.statusDisponivel)) v.id
+    };
+    var ordem = 0;
+    return [
+      for (final d in drivers.where((d) => d.vinculado && disponiveis.contains(d.vanId)))
+        QueueEntry(
+          motoristaId: d.id,
+          vanNome: d.vanNome,
+          motoristaNome: d.nome,
+          status: 'aguardando',
+          ordem: ++ordem,
+        ),
+    ];
   }
 
-  Future<void> deleteVehicle(String id) async {
-    if (ModoTeste.ativo) {
-      _mockVehicles.removeWhere((v) => v.id == id);
-      _vehiclesController.add(List.from(_mockVehicles));
-      return;
+  /// Emite o valor atual na hora em que alguém começa a ouvir e de novo a
+  /// cada alteração. Assim a lista nunca fica para trás.
+  Stream<T> watch<T>(T Function() read, {Duration? refresh}) => Stream<T>.multi((c) {
+        c.add(read());
+        final sub = _changes.stream.listen((_) => c.add(read()));
+        final timer = refresh == null ? null : Timer.periodic(refresh, (_) => c.add(read()));
+        c.onCancel = () {
+          timer?.cancel();
+          return sub.cancel();
+        };
+      });
+
+  void upsert<T>(List<T> list, T item, String Function(T) idOf) {
+    final index = list.indexWhere((e) => idOf(e) == idOf(item));
+    if (index >= 0) {
+      list[index] = item;
+    } else {
+      list.add(item);
     }
-    await _db.collection(FirestorePaths.vans).doc(id).delete();
+    _changes.add(null);
   }
 
-  // Routes CRUD
-  Stream<List<AdminRoute>> watchRoutes() {
-    if (ModoTeste.ativo) {
-      Future.microtask(() => _routesController.add(List.from(_mockRoutes)));
-      return _routesController.stream;
-    }
-    return _db.collection('rotas').snapshots().map(
-          (snap) => snap.docs
-              .map((d) => AdminRoute.fromMap(d.id, d.data()))
-              .toList(),
-        );
-  }
-
-  Future<void> saveRoute(AdminRoute route) async {
-    if (ModoTeste.ativo) {
-      if (route.id.isEmpty) {
-        final newId = 'route_${DateTime.now().millisecondsSinceEpoch}';
-        final r = AdminRoute(
-          id: newId,
-          codigo: route.codigo,
-          origem: route.origem,
-          destino: route.destino,
-          intervaloMinutos: route.intervaloMinutos,
-        );
-        _mockRoutes.add(r);
-      } else {
-        final index = _mockRoutes.indexWhere((item) => item.id == route.id);
-        if (index >= 0) {
-          _mockRoutes[index] = route;
-        } else {
-          _mockRoutes.add(route);
-        }
-      }
-      _routesController.add(List.from(_mockRoutes));
-      return;
-    }
-    final ref = route.id.isEmpty
-        ? _db.collection('rotas').doc()
-        : _db.collection('rotas').doc(route.id);
-    await ref.set(route.toMap(), SetOptions(merge: true));
-  }
-
-  Future<void> deleteRoute(String id) async {
-    if (ModoTeste.ativo) {
-      _mockRoutes.removeWhere((r) => r.id == id);
-      _routesController.add(List.from(_mockRoutes));
-      return;
-    }
-    await _db.collection('rotas').doc(id).delete();
-  }
-
-  // Drivers CRUD
-  Stream<List<AdminDriver>> watchDrivers() {
-    if (ModoTeste.ativo) {
-      Future.microtask(() => _driversController.add(List.from(_mockDrivers)));
-      return _driversController.stream;
-    }
-    return _db.collection(FirestorePaths.motoristas).snapshots().map(
-          (snap) => snap.docs
-              .map((d) => AdminDriver.fromMap(d.id, d.data()))
-              .toList(),
-        );
-  }
-
-  Future<void> saveDriver(AdminDriver driver) async {
-    if (ModoTeste.ativo) {
-      if (driver.id.isEmpty) {
-        final newId = 'driver_${DateTime.now().millisecondsSinceEpoch}';
-        final d = AdminDriver(
-          id: newId,
-          nome: driver.nome,
-          vanId: driver.vanId,
-          vanNome: driver.vanNome,
-          placa: driver.placa,
-          rotaId: driver.rotaId,
-          rotaCodigo: driver.rotaCodigo,
-          origem: driver.origem,
-          destino: driver.destino,
-        );
-        _mockDrivers.add(d);
-      } else {
-        final index = _mockDrivers.indexWhere((item) => item.id == driver.id);
-        if (index >= 0) {
-          _mockDrivers[index] = driver;
-        } else {
-          _mockDrivers.add(driver);
-        }
-      }
-      _driversController.add(List.from(_mockDrivers));
-      return;
-    }
-    await _db
-        .collection(FirestorePaths.motoristas)
-        .doc(driver.id)
-        .set(driver.toMap(), SetOptions(merge: true));
-  }
-
-  Future<void> deleteDriver(String id) async {
-    if (ModoTeste.ativo) {
-      _mockDrivers.removeWhere((d) => d.id == id);
-      _driversController.add(List.from(_mockDrivers));
-      return;
-    }
-    await _db.collection(FirestorePaths.motoristas).doc(id).delete();
+  void remove<T>(List<T> list, bool Function(T) test) {
+    list.removeWhere(test);
+    _changes.add(null);
   }
 }
