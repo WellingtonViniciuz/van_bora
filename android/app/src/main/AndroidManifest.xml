@@ -7,6 +7,11 @@
         android:label="vam_bora"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Chave do Google Maps: preenchida pelo build a partir do
+             dart-define MAPS_API_KEY (veja android/app/build.gradle.kts). -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
