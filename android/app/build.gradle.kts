@@ -1,8 +1,26 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Chave do Google Maps (módulo do passageiro). Vem do mesmo valor usado no Dart:
+//   flutter run --dart-define=MAPS_API_KEY=sua_chave
+// O Flutter repassa os --dart-define ao Gradle em base64 na propriedade "dart-defines".
+val dartDefines: Map<String, String> =
+    (project.findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.mapNotNull { encoded ->
+            runCatching { String(Base64.getDecoder().decode(encoded)) }.getOrNull()
+        }
+        ?.mapNotNull { entry ->
+            val i = entry.indexOf('=')
+            if (i > 0) entry.substring(0, i) to entry.substring(i + 1) else null
+        }
+        ?.toMap()
+        ?: emptyMap()
 
 android {
     namespace = "com.vambora.app.vam_bora"
@@ -23,6 +41,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["MAPS_API_KEY"] = dartDefines["MAPS_API_KEY"] ?: ""
     }
 
     buildTypes {

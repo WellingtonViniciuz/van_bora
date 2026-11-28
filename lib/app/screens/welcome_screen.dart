@@ -40,11 +40,8 @@ class WelcomeScreen extends StatelessWidget {
                         title: 'É um passageiro?',
                         subtitle: 'Acesse as rotas disponíveis',
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Módulo do passageiro em desenvolvimento.'),
-                            ),
-                          );
+                          // Passageiro não tem login: entra direto no mapa.
+                          Navigator.of(context).pushNamed(AppRoutes.passengerHome);
                         },
                       ),
                       const SizedBox(height: 16),
